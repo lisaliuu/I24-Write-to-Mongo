@@ -3,10 +3,8 @@ import csv
 #import pandas as pd
 import pymongo
 from pymongo import MongoClient
-import numpy as np
 import bson
 import time
-from datetime import date
 from datetime import datetime
 import calendar
 from pymongo import MongoClient
@@ -18,9 +16,8 @@ import dask.dataframe as dd
 username = urllib.parse.quote_plus('i24-data')
 password = urllib.parse.quote_plus('mongodb@i24')
 client = MongoClient('mongodb://%s:%s@10.2.218.56' % (username, password))
-
 db=client["trajectories"]
-col=db["ground_truth_trajectories"]
+col=db["ground_truth_trajectories_test"]
 
 GTFilePath=r'/isis/home/teohz/Desktop/data_for_mongo/GT/'
 rawFilePath=r'/isis/home/teohz/Desktop/data_for_mongo/pollute/'
@@ -29,9 +26,9 @@ files=["0-12min.csv","12-23min.csv","23-34min.csv","34-45min.csv","45-56min.csv"
 
 GTschema=["timestamp","ID","Coarse_vehicle_class","direction","x_position","y_position","width","length","height","configuration_ID","road_segment_ID","x_velocity","y_velocity","x_acceleration","y_acceleration","x_jerk","y_jerk"]
 
-def generate_single_GTtrajectory(df_car):
+def write_single_GTtrajectory(df_car):
     
-    df_list=pd.DataFrame()
+    df_list={}
 
     df_list["timestamp"]=df_car["timestamp"]
     df_list["x_position"]=to_feet(df_car["x_position"])
@@ -65,12 +62,11 @@ def generate_single_GTtrajectory(df_car):
     carID = listdict['ID']
     print("Current CarID: %i" % carID, end="\r")
 
-    #print(".")
-    return
+    return df_car
 
-def generate_single_TMtrajectory(df_car):
+def write_single_TMtrajectory(df_car):
     
-    df_list=pd.DataFrame()
+    df_list=dd.DataFrame()
 
     df_list["timestamp"]=df_car["timestamp"]
     df_list["x_position"]=to_feet(df_car["x_position"])
@@ -97,22 +93,26 @@ def generate_single_TMtrajectory(df_car):
     
     carID = listdict['ID']
     print("Current CarID: %i" % carID, end="\r")
-    return
+    return df_car
 
 def to_feet(meters): #turn positions to feet
     return meters*3.2808
 
 print("Ground Truth start")
+
+df = dd.read_csv(GTFilePath+'12-23min.csv')
+print("reading complete")
+
+#%%
+df.groupby(["ID"]).apply(write_single_GTtrajectory,meta=df) #group and write to database
+df.compute()
+
+
+
+# random code
+
 #for file in files:
     #if file == "0-12min.csv":
      #   continue
 #print("reading file ", file)
-df = dd.read_csv(GTFilePath+'12-23min.csv',usecols=GTschema)
-#%%
-print("reading complete")
-print(df.npartitions)
-
-#%%
-df.groupby(["ID"]).apply(generate_single_GTtrajectory) #group and write to database
-    
-#are vel, acc, jerk in meters too
+#df = dd.read_csv(GTFilePath+'12-23min.csv',usecols=GTschema)
