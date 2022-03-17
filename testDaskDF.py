@@ -29,7 +29,7 @@ ddf = dd.from_pandas(df, npartitions=4)
 
 ddf2 = ddf.groupby(['car_ID'])
 print(ddf2.mean().compute())
-result=ddf.groupby(["car_ID"]).apply(generate_single_GTtrajectory, meta={'x_position': 'f8',
+result=ddf.groupby(["car_ID"]).apply(generate_single_GTtrajectory, axis=1, meta={'x_position': 'f8',
                                                                           'y_position': 'f8'}).compute()
 print(result.compute())
 #print (ddf.compute())
